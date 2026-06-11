@@ -56,6 +56,26 @@
             margin-top: 0.25rem;
         }
 
+        /* Division Subheaders inside tabs */
+        .division-header {
+            font-size: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .division-header::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border-glow);
+        }
+
         /* Tab Navigation Bar */
         .tab-navigation {
             display: flex;
@@ -182,7 +202,6 @@
             <p>Live Database Synchronization Active</p>
         </header>
 
-        <!-- Four Nav Tabs Split System -->
         <nav class="tab-navigation">
             <button class="tab-btn active" onclick="switchTab('d1-standings')">D1 Standings</button>
             <button class="tab-btn" onclick="switchTab('d2-standings')">D2 Standings</button>
@@ -190,7 +209,6 @@
             <button class="tab-btn" onclick="switchTab('schedule')">Schedule</button>
         </nav>
 
-        <!-- TAB 1: D1 STANDINGS VIEW -->
         <main id="d1-standings-tab" class="tab-content active">
             <div class="table-wrapper">
                 <table>
@@ -212,7 +230,6 @@
             </div>
         </main>
 
-        <!-- TAB 2: D2 STANDINGS VIEW -->
         <main id="d2-standings-tab" class="tab-content">
             <div class="table-wrapper">
                 <table>
@@ -234,14 +251,20 @@
             </div>
         </main>
 
-        <!-- TAB 3: RACE RESULTS -->
         <main id="results-tab" class="tab-content">
-            <div id="results-body"><div class="loading-state">Downloading result sheets...</div></div>
+            <div class="division-header">Division 1 Results</div>
+            <div id="d1-results-body"><div class="loading-state">Downloading D1 results...</div></div>
+            
+            <div class="division-header">Division 2 Results</div>
+            <div id="d2-results-body"><div class="loading-state">Downloading D2 results...</div></div>
         </main>
 
-        <!-- TAB 4: SCHEDULE -->
         <main id="schedule-tab" class="tab-content">
-            <div id="schedule-body"><div class="loading-state">Downloading calendar timelines...</div></div>
+            <div class="division-header">Division 1 Schedule</div>
+            <div id="d1-schedule-body"><div class="loading-state">Downloading D1 calendar...</div></div>
+            
+            <div class="division-header">Division 2 Schedule</div>
+            <div id="d2-schedule-body"><div class="loading-state">Downloading D2 calendar...</div></div>
         </main>
     </div>
 
@@ -251,8 +274,6 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // Set current target active state securely
             if (event && event.target) {
                 event.target.classList.add('active');
             }
@@ -263,7 +284,6 @@
             return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
         }
 
-        // CSV parsing engine
         function parseCSV(text) {
             const lines = text.split('\n');
             const result = [];
@@ -316,50 +336,55 @@
                     tbody.appendChild(tr);
                 });
             } catch(e) { 
-                document.getElementById(elementId).innerHTML = '<tr><td colspan="7" class="loading-state">Error downloading data. Verify tab structure exists.</td></tr>'; 
+                document.getElementById(elementId).innerHTML = '<tr><td colspan="7" class="loading-state">Error syncing data.</td></tr>'; 
+            }
+        }
+
+        async function fetchCards(tabName, elementId, isResults) {
+            try {
+                const res = await fetch(getCSVUrl(tabName));
+                const data = parseCSV(await res.text());
+                const container = document.getElementById(elementId);
+                container.innerHTML = data.length === 0 ? '<div class="loading-state">No items logged.</div>' : '';
+                
+                data.forEach(row => {
+                    if (isResults) {
+                        container.innerHTML += `
+                            <div class="info-card">
+                                <div>
+                                    <h3>${row.RACE || 'Unknown Event'}</h3>
+                                    <p>Winner: ${row.WINNER || '—'} • ${row.MARGIN || '—'}</p>
+                                </div>
+                                <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
+                            </div>`;
+                    } else {
+                        container.innerHTML += `
+                            <div class="info-card">
+                                <div>
+                                    <h3>${row.TRACK || 'TBD Track'}</h3>
+                                    <p>${row.DETAILS || 'Race parameters unlisted'}</p>
+                                </div>
+                                <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Scheduled'}</span>
+                            </div>`;
+                    }
+                });
+            } catch(e) {
+                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error syncing this division.</div>';
             }
         }
 
         async function loadHubData() {
-            // Load Standings into individual target DOM references independently
+            // Load Standings
             await fetchTable('D1-Standings', 'd1-standings-body');
             await fetchTable('D2-Standings', 'd2-standings-body');
 
-            // FETCH & RENDER RACE RESULTS
-            try {
-                const res = await fetch(getCSVUrl('Results'));
-                const data = parseCSV(await res.text());
-                const container = document.getElementById('results-body');
-                container.innerHTML = data.length === 0 ? '<div class="loading-state">No race items logged.</div>' : '';
-                data.forEach(row => {
-                    container.innerHTML += `
-                        <div class="info-card">
-                            <div>
-                                <h3>${row.RACE || 'Unknown Event'}</h3>
-                                <p>Winner: ${row.WINNER || '—'} • ${row.MARGIN || '—'}</p>
-                            </div>
-                            <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
-                        </div>`;
-                });
-            } catch(e) { document.getElementById('results-body').innerHTML = '<div class="loading-state">Error sync.</div>'; }
+            // Load Results split by division
+            await fetchCards('D1-Results', 'd1-results-body', true);
+            await fetchCards('D2-Results', 'd2-results-body', true);
 
-            // FETCH & RENDER SCHEDULE
-            try {
-                const res = await fetch(getCSVUrl('Schedule'));
-                const data = parseCSV(await res.text());
-                const container = document.getElementById('schedule-body');
-                container.innerHTML = data.length === 0 ? '<div class="loading-state">No schedule tracking data.</div>' : '';
-                data.forEach(row => {
-                    container.innerHTML += `
-                        <div class="info-card">
-                            <div>
-                                <h3>${row.TRACK || 'TBD Track'}</h3>
-                                <p>${row.DETAILS || 'Race date and parameters unlisted'}</p>
-                            </div>
-                            <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Scheduled'}</span>
-                        </div>`;
-                });
-            } catch(e) { document.getElementById('schedule-body').innerHTML = '<div class="loading-state">Error sync.</div>'; }
+            // Load Schedules split by division
+            await fetchCards('D1-Schedule', 'd1-schedule-body', false);
+            await fetchCards('D2-Schedule', 'd2-schedule-body', false);
         }
 
         window.onload = loadHubData;

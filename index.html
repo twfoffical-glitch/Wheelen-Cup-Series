@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>League Dashboard | Standings</title>
+    <title>League Dashboard | Hub</title>
     <style>
         /* Modern Racing UI Aesthetic Elements */
         :root {
@@ -20,7 +20,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         body {
@@ -38,7 +38,7 @@
 
         /* Header UI */
         .dashboard-header {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             border-left: 4px solid var(--accent-neon);
             padding-left: 1rem;
         }
@@ -55,6 +55,42 @@
             font-size: 0.9rem;
             margin-top: 0.25rem;
         }
+
+        /* Tab Navigation Bar */
+        .tab-navigation {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-glow);
+            padding-bottom: 0.75rem;
+        }
+
+        .tab-btn {
+            background: #17171c;
+            border: 1px solid var(--border-glow);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover { color: #ffffff; border-color: var(--text-muted); }
+
+        .tab-btn.active {
+            background: var(--accent-neon);
+            color: #000000;
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+
+        /* View Content Management */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         /* Standings Table Architecture */
         .table-wrapper {
@@ -89,107 +125,130 @@
             font-variant-numeric: tabular-nums;
         }
 
-        tr:hover td {
-            background-color: #16161c;
+        tr:hover td { background-color: #16161c; }
+
+        /* Dynamic Sheet Info Cards */
+        .info-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            padding: 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* Data Alignment and Treatment */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-
-        .pos-column {
-            font-weight: 700;
-            color: var(--text-muted);
-            width: 60px;
-        }
-
-        .driver-name {
-            font-weight: 600;
+        .info-card h3 {
+            font-size: 1.1rem;
             color: #ffffff;
-        }
-
-        .team-badge {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .pts-total {
-            font-weight: 700;
-            color: var(--accent-neon);
-        }
-
-        /* Playoff Cutline Split Logic */
-        .playoff-cutline td {
-            border-bottom: 2px dashed var(--playoff-cut);
-        }
-
-        /* Status & Loading Indicator states */
-        .loading-state {
-            padding: 3rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-style: italic;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .error-state {
-            padding: 3rem;
-            text-align: center;
-            color: var(--playoff-cut);
-            font-weight: bold;
+        .info-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
+
+        .badge-status {
+            background: #1c1c24;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Status Colors mapping */
+        .status-green { color: var(--accent-neon); }
+        .status-red { color: var(--playoff-cut); }
+        .status-gray { color: var(--text-muted); }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .pos-column { font-weight: 700; color: var(--text-muted); width: 60px; }
+        .driver-name { font-weight: 600; color: #ffffff; }
+        .team-badge { color: var(--text-muted); font-size: 0.85rem; }
+        .pts-total { font-weight: 700; color: var(--accent-neon); }
+        .playoff-cutline td { border-bottom: 2px dashed var(--playoff-cut); }
+
+        .loading-state { padding: 3rem; text-align: center; color: var(--text-muted); font-style: italic; }
     </style>
 </head>
 <body>
 
     <div class="dashboard-container">
         <header class="dashboard-header">
-            <h1>Championship Standings</h1>
-            <p id="update-timer">Live Data Hub • Updates Automatically From Central Database</p>
+            <h1>League Data Hub</h1>
+            <p>Live Database Synchronization Active</p>
         </header>
 
-        <main class="table-wrapper">
-            <table id="standings-table">
-                <thead>
-                    <tr>
-                        <th class="text-center">Pos</th>
-                        <th>Driver</th>
-                        <th>Team</th>
-                        <th class="text-center">Wins</th>
-                        <th class="text-center">Top 5</th>
-                        <th class="text-right">Pts</th>
-                        <th class="text-right">Gap</th>
-                    </tr>
-                </thead>
-                <tbody id="standings-body">
-                    <tr>
-                        <td colspan="7" class="loading-state">Syncing secure connection with telemetry stream...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Navigation Tabs -->
+        <nav class="tab-navigation">
+            <button class="tab-btn active" onclick="switchTab('standings')">Standings</button>
+            <button class="tab-btn" onclick="switchTab('results')">Race Results</button>
+            <button class="tab-btn" onclick="switchTab('schedule')">Schedule</button>
+        </nav>
+
+        <!-- TAB 1: STANDINGS -->
+        <main id="standings-tab" class="tab-content active">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center">Pos</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                            <th class="text-center">Wins</th>
+                            <th class="text-center">Top 5</th>
+                            <th class="text-right">Pts</th>
+                            <th class="text-right">Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody id="standings-body">
+                        <tr><td colspan="7" class="loading-state">Downloading sheet telemetry...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- TAB 2: RACE RESULTS -->
+        <main id="results-tab" class="tab-content">
+            <div id="results-body"><div class="loading-state">Downloading result sheets...</div></div>
+        </main>
+
+        <!-- TAB 3: SCHEDULE -->
+        <main id="schedule-tab" class="tab-content">
+            <div id="schedule-body"><div class="loading-state">Downloading calendar timelines...</div></div>
         </main>
     </div>
 
     <script>
-        // Your unique Google Sheet configurations
         const SHEET_ID = '1mdwb8l4JH6HiXogER1SdS5AbKmv_TLR-H48j2LTEOYs';
-        const TAB_NAME = 'Standings';
-        
-        // Clean dynamic variable string matching configuration elements securely
-        const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${TAB_NAME}`;
 
-        // Simple CSV parser logic to avoid requiring heavy third-party dependencies
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+        }
+
+        function getCSVUrl(tabName) {
+            return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+        }
+
         function parseCSV(text) {
             const lines = text.split('\n');
             const result = [];
-            const headers = lines[0].split(',').map(header => header.replace(/^"(.*)"$/, '$1').trim());
+            if (lines.length === 0 || !lines[0].trim()) return result;
+            const headers = lines[0].split(',').map(h => h.replace(/^"(.*)"$/, '$1').trim());
 
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                
                 const obj = {};
                 const currentline = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
-                
                 headers.forEach((header, index) => {
                     let value = currentline[index] ? currentline[index].trim() : '';
                     value = value.replace(/^"(.*)"$/, '$1');
@@ -200,31 +259,24 @@
             return result;
         }
 
-        async function fetchAndRenderStandings() {
-            const tbody = document.getElementById('standings-body');
-            
+        function getStatusClass(status) {
+            if (!status) return 'status-gray';
+            const s = status.toLowerCase();
+            if (s.includes('next') || s.includes('live') || s.includes('official')) return 'status-green';
+            if (s.includes('canceled') || s.includes('postponed')) return 'status-red';
+            return 'status-gray';
+        }
+
+        async function loadHubData() {
+            // 1. FETCH & RENDER STANDINGS
             try {
-                const response = await fetch(GOOGLE_SHEET_CSV_URL);
-                if (!response.ok) throw new Error('Network error parsing spreadsheet telemetry');
-                
-                const csvData = await response.text();
-                const standings = parseCSV(csvData);
-                
-                // Wipe clean loading placeholders
+                const res = await fetch(getCSVUrl('Standings'));
+                const data = parseCSV(await res.text());
+                const tbody = document.getElementById('standings-body');
                 tbody.innerHTML = '';
-                
-                // Define your playoff format cutoff point (e.g. Top 10 make the playoffs)
-                const PLAYOFF_CUTOFF_LINE = 10;
-
-                standings.forEach((row, index) => {
+                data.forEach((row, index) => {
                     const tr = document.createElement('tr');
-                    
-                    // Inject cutoff class treatment if driver sits exactly on the bubble boundary
-                    if (index + 1 === PLAYOFF_CUTOFF_LINE) {
-                        tr.className = 'playoff-cutline';
-                    }
-
-                    // Complete inner layout mapping structure mapping elements down cleanly
+                    if (index + 1 === 10) tr.className = 'playoff-cutline';
                     tr.innerHTML = `
                         <td class="pos-column text-center">${row.POS || (index + 1)}</td>
                         <td class="driver-name">${row.DRIVER || '—'}</td>
@@ -236,15 +288,46 @@
                     `;
                     tbody.appendChild(tr);
                 });
+            } catch(e) { document.getElementById('standings-body').innerHTML = '<tr><td colspan="7">Error loading.</td></tr>'; }
 
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                tbody.innerHTML = `<tr><td colspan="7" class="error-state">Failed to download live stats. Check configurations.</td></tr>`;
-            }
+            // 2. FETCH & RENDER RACE RESULTS
+            try {
+                const res = await fetch(getCSVUrl('Results'));
+                const data = parseCSV(await res.text());
+                const container = document.getElementById('results-body');
+                container.innerHTML = data.length === 0 ? '<div class="loading-state">No race items logged.</div>' : '';
+                data.forEach(row => {
+                    container.innerHTML += `
+                        <div class="info-card">
+                            <div>
+                                <h3>${row.RACE || 'Unknown Event'}</h3>
+                                <p>Winner: ${row.WINNER || '—'} • ${row.MARGIN || '—'}</p>
+                            </div>
+                            <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
+                        </div>`;
+                });
+            } catch(e) { document.getElementById('results-body').innerHTML = '<div class="loading-state">Error sync.</div>'; }
+
+            // 3. FETCH & RENDER SCHEDULE
+            try {
+                const res = await fetch(getCSVUrl('Schedule'));
+                const data = parseCSV(await res.text());
+                const container = document.getElementById('schedule-body');
+                container.innerHTML = data.length === 0 ? '<div class="loading-state">No schedule tracking data.</div>' : '';
+                data.forEach(row => {
+                    container.innerHTML += `
+                        <div class="info-card">
+                            <div>
+                                <h3>${row.TRACK || 'TBD Track'}</h3>
+                                <p>${row.DETAILS || 'Race date and parameters unlisted'}</p>
+                            </div>
+                            <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Scheduled'}</span>
+                        </div>`;
+                });
+            } catch(e) { document.getElementById('schedule-body').innerHTML = '<div class="loading-state">Error sync.</div>'; }
         }
 
-        // Fire on initial interface load execution context
-        fetchAndRenderStandings();
+        window.onload = loadHubData;
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whelen Race hub</title>
+    <title>League Dashboard | Hub</title>
     <style>
         /* Modern Racing UI Aesthetic Elements */
         :root {
@@ -148,7 +148,7 @@
 
         tr:hover td { background-color: #16161c; }
 
-        /* Dynamic Info Cards (For Results) */
+        /* Info Cards (Results) */
         .info-card {
             background: var(--panel-bg);
             border: 1px solid var(--border-glow);
@@ -170,7 +170,7 @@
 
         .info-card p { font-size: 0.85rem; color: var(--text-muted); }
 
-        /* PREMIUM CALENDAR GRID GRAPHICS */
+        /* Calendar Grid Graphics */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -188,10 +188,7 @@
             transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        .calendar-card:hover {
-            transform: translateY(-2px);
-            border-color: #333344;
-        }
+        .calendar-card:hover { transform: translateY(-2px); border-color: #333344; }
 
         .calendar-date-badge {
             background: #17171c;
@@ -201,40 +198,53 @@
             text-transform: uppercase;
         }
 
-        .calendar-month {
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--text-muted);
+        .calendar-month { font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); }
+        .calendar-day { font-size: 1.75rem; font-weight: 900; color: #ffffff; line-height: 1.2; }
+        .calendar-details { padding: 1rem; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 0.75rem; }
+        .calendar-track { font-weight: 700; color: #ffffff; font-size: 0.95rem; text-transform: uppercase; }
+        .calendar-time { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* DRIVER ROSTER GRID SYSTEM */
+        .driver-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
         }
 
-        .calendar-day {
-            font-size: 1.75rem;
-            font-weight: 900;
-            color: #ffffff;
-            line-height: 1.2;
-        }
-
-        .calendar-details {
-            padding: 1rem;
+        .driver-profile-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: 1.25rem;
             display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            justify-content: space-between;
-            gap: 0.75rem;
+            gap: 1rem;
+            align-items: flex-start;
+            transition: border-color 0.2s ease;
         }
 
-        .calendar-track {
-            font-weight: 700;
-            color: #ffffff;
-            font-size: 0.95rem;
-            text-transform: uppercase;
+        .driver-profile-card:hover { border-color: var(--text-muted); }
+
+        .driver-avatar {
+            width: 64px;
+            height: 64px;
+            background: #1c1c24;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--accent-neon);
+            font-size: 1.25rem;
+            border: 1px solid var(--border-glow);
+            flex-shrink: 0;
+            object-fit: cover;
         }
 
-        .calendar-time {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
+        .driver-bio-content { display: flex; flex-direction: column; gap: 0.25rem; width: 100%; }
+        .driver-name-title { font-size: 1.1rem; font-weight: 800; color: #ffffff; text-transform: uppercase; }
+        .driver-meta-line { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .driver-bio-desc { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; margin-top: 0.25rem; }
 
         .badge-status {
             background: #1c1c24;
@@ -271,13 +281,16 @@
             <p>Live Database Synchronization Active</p>
         </header>
 
+        <!-- Navigation Tabs Layout System -->
         <nav class="tab-navigation">
             <button class="tab-btn active" onclick="switchTab('d1-standings')">D1 Standings</button>
             <button class="tab-btn" onclick="switchTab('d2-standings')">D2 Standings</button>
             <button class="tab-btn" onclick="switchTab('results')">Race Results</button>
             <button class="tab-btn" onclick="switchTab('schedule')">Schedule Calendar</button>
+            <button class="tab-btn" onclick="switchTab('drivers')">Driver Roster</button>
         </nav>
 
+        <!-- TAB 1: D1 STANDINGS VIEW -->
         <main id="d1-standings-tab" class="tab-content active">
             <div class="table-wrapper">
                 <table>
@@ -299,6 +312,7 @@
             </div>
         </main>
 
+        <!-- TAB 2: D2 STANDINGS VIEW -->
         <main id="d2-standings-tab" class="tab-content">
             <div class="table-wrapper">
                 <table>
@@ -320,6 +334,7 @@
             </div>
         </main>
 
+        <!-- TAB 3: RACE RESULTS -->
         <main id="results-tab" class="tab-content">
             <div class="division-header">Division 1 Results</div>
             <div id="d1-results-body"><div class="loading-state">Downloading D1 results...</div></div>
@@ -328,15 +343,29 @@
             <div id="d2-results-body"><div class="loading-state">Downloading D2 results...</div></div>
         </main>
 
+        <!-- TAB 4: SCHEDULE CALENDAR GRID -->
         <main id="schedule-tab" class="tab-content">
             <div class="division-header">Division 1 Calendar</div>
             <div id="d1-schedule-body" class="calendar-grid">
-                <div class="loading-state">Building D1 graphic structures...</div>
+                <div class="loading-state">Building D1 schedule...</div>
             </div>
             
             <div class="division-header">Division 2 Calendar</div>
             <div id="d2-schedule-body" class="calendar-grid">
-                <div class="loading-state">Building D2 graphic structures...</div>
+                <div class="loading-state">Building D2 schedule...</div>
+            </div>
+        </main>
+
+        <!-- TAB 5: DRIVER PROFILES ROSTER -->
+        <main id="drivers-tab" class="tab-content">
+            <div class="division-header">Division 1 Drivers</div>
+            <div id="d1-drivers-body" class="driver-grid">
+                <div class="loading-state">Syncing Division 1 profiles...</div>
+            </div>
+
+            <div class="division-header">Division 2 Drivers</div>
+            <div id="d2-drivers-body" class="driver-grid">
+                <div class="loading-state">Syncing Division 2 profiles...</div>
             </div>
         </main>
     </div>
@@ -380,8 +409,8 @@
         function getStatusClass(status) {
             if (!status) return 'status-gray';
             const s = status.toLowerCase();
-            if (s.includes('next') || s.includes('live') || s.includes('official')) return 'status-green';
-            if (s.includes('canceled') || s.includes('postponed')) return 'status-red';
+            if (s.includes('next') || s.includes('live') || s.includes('active')) return 'status-green';
+            if (s.includes('suspended') || s.includes('inactive')) return 'status-red';
             return 'status-gray';
         }
 
@@ -408,9 +437,7 @@
                     `;
                     tbody.appendChild(tr);
                 });
-            } catch(e) { 
-                document.getElementById(elementId).innerHTML = '<tr><td colspan="7">Error syncing data.</td></tr>'; 
-            }
+            } catch(e) { tbody.innerHTML = '<tr><td colspan="7">Error syncing data.</td></tr>'; }
         }
 
         async function fetchResultsCards(tabName, elementId) {
@@ -430,9 +457,7 @@
                             <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
                         </div>`;
                 });
-            } catch(e) {
-                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error sync.</div>';
-            }
+            } catch(e) { document.getElementById(elementId).innerHTML = '<div class="loading-state">Error sync.</div>'; }
         }
 
         async function fetchCalendarGrid(tabName, elementId) {
@@ -458,8 +483,59 @@
                             </div>
                         </div>`;
                 });
-            } catch(e) {
-                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error building grid timeline.</div>';
+            } catch(e) { document.getElementById(elementId).innerHTML = '<div class="loading-state">Error building timeline.</div>'; }
+        }
+
+        async function fetchDrivers() {
+            try {
+                const res = await fetch(getCSVUrl('Drivers'));
+                const data = parseCSV(await res.text());
+                
+                const d1Container = document.getElementById('d1-drivers-body');
+                const d2Container = document.getElementById('d2-drivers-body');
+                
+                d1Container.innerHTML = '';
+                d2Container.innerHTML = '';
+
+                let d1Count = 0;
+                let d2Count = 0;
+
+                data.forEach(row => {
+                    const driverName = row.DRIVER || 'Unknown Driver';
+                    const initials = driverName.substring(0, 2).toUpperCase();
+                    
+                    let avatarHtml = `<div class="driver-avatar">${initials}</div>`;
+                    if (row.IMAGE_URL && row.IMAGE_URL !== '—' && row.IMAGE_URL.trim() !== '') {
+                        avatarHtml = `<img src="${row.IMAGE_URL}" class="driver-avatar" alt="${driverName}">`;
+                    }
+
+                    const cardHtml = `
+                        <div class="driver-profile-card">
+                            ${avatarHtml}
+                            <div class="driver-bio-content">
+                                <div class="driver-name-title">${driverName}</div>
+                                <div class="driver-meta-line">${row.TEAM || 'Independent'}</div>
+                                <span class="badge-status ${getStatusClass(row.STATUS)}" style="margin: 0.2rem 0;">${row.STATUS || 'Active'}</span>
+                                <div class="driver-bio-desc">${row.BIO || 'No driver background bio filed.'}</div>
+                            </div>
+                        </div>`;
+
+                    const divStr = (row.DIVISION || 'D1').toUpperCase();
+                    if (divStr.includes('D2') || divStr.includes('2')) {
+                        d2Container.innerHTML += cardHtml;
+                        d2Count++;
+                    } else {
+                        d1Container.innerHTML += cardHtml;
+                        d1Count++;
+                    }
+                });
+
+                if (d1Count === 0) d1Container.innerHTML = '<div class="loading-state">No D1 drivers filed.</div>';
+                if (d2Count === 0) d2Container.innerHTML = '<div class="loading-state">No D2 drivers filed.</div>';
+
+            } catch (e) {
+                document.getElementById('d1-drivers-body').innerHTML = '<div class="loading-state">Error syncing roster database.</div>';
+                document.getElementById('d2-drivers-body').innerHTML = '<div class="loading-state">Error syncing roster database.</div>';
             }
         }
 
@@ -470,6 +546,7 @@
             await fetchResultsCards('D2-Results', 'd2-results-body');
             await fetchCalendarGrid('D1-Schedule', 'd1-schedule-body');
             await fetchCalendarGrid('D2-Schedule', 'd2-schedule-body');
+            await fetchDrivers();
         }
 
         window.onload = loadHubData;

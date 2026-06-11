@@ -216,7 +216,7 @@
                 tbody.innerHTML = '';
                 
                 // Define your playoff format cutoff point (e.g., Top 12 make the playoffs)
-                const PLAYOFF_CUTOFF_LINE = 12;
+                const PLAYOFF_CUTOFF_LINE = 10;
 
                 standings.forEach((row, index) => {
                     const tr = document.createElement('tr');
@@ -227,14 +227,13 @@
                     }
 
                     tr.innerHTML = `
-                        <td class="pos-column text-center">${row.POS || (index + 1)}</td>
-                        <td class="driver-name">${row.DRIVER || '—'}</td>
-                        <td class="team-badge">${row.TEAM || '—'}</td>
-                        <td class="text-center">${row.WINS || '0'}</td>
-                        <td class="text-center">${row.TOP5 || '0'}</td>
-                        <td class="pts-total text-right">${row.PTS || '0'}</td>
-                        <td class="text-right" style="color: var(--text-muted); font-size: 0.85rem;">${row.GAP || '—'}</td>
-                    `;
+                          <td class="pos-column text-center">${row.POS || (index + 1)}</td>
+                          <td class="driver-name">${row.DRIVER || '—'}</td>
+                          <td class="team-badge">${row.TEAM || '—'}</td>
+                          <td class="text-center">${row.WINS || '0'}</td>
+                          <td class="text-center">${row.TOP5 || '0'}</td>
+                          <td class="pts-total text-right">${row.PTS || '0'}</td>
+
                     tbody.appendChild(tr);
                 });
 

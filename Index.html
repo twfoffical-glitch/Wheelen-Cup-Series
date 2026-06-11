@@ -5,19 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>League Dashboard | Standings</title>
     <style>
+        /* Modern Racing UI Aesthetic Elements */
         :root {
             --bg-darken: #0a0a0c;
             --panel-bg: #121215;
             --border-glow: #1a1a22;
             --text-main: #e2e8f0;
-            --accent-neon: #00ffcc;
+            --text-muted: #64748b;
+            --accent-neon: #00ffcc; /* Racing Cyan */
+            --playoff-cut: #ff3b3b; /* Playoff Danger Red */
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
@@ -33,6 +36,7 @@
             max-width: 1000px;
         }
 
+        /* Header UI */
         .dashboard-header {
             margin-bottom: 2rem;
             border-left: 4px solid var(--accent-neon);
@@ -46,25 +50,93 @@
             font-weight: 800;
         }
 
-        /* Responsive Frame Wrapper */
-        .frame-wrapper {
+        .dashboard-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Standings Table Architecture */
+        .table-wrapper {
             background-color: var(--panel-bg);
             border: 1px solid var(--border-glow);
             border-radius: 6px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            position: relative;
-            padding-bottom: 75%; /* Controls the aspect ratio height */
-            height: 0;
         }
 
-        .frame-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
+        table {
             width: 100%;
-            height: 100%;
-            border: none;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #17171c;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            font-weight: 700;
+            padding: 1rem;
+            border-bottom: 2px solid var(--border-glow);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-glow);
+            font-variant-numeric: tabular-nums;
+        }
+
+        tr:hover td {
+            background-color: #16161c;
+        }
+
+        /* Data Alignment and Treatment */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        .pos-column {
+            font-weight: 700;
+            color: var(--text-muted);
+            width: 60px;
+        }
+
+        .driver-name {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .team-badge {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .pts-total {
+            font-weight: 700;
+            color: var(--accent-neon);
+        }
+
+        /* Playoff Cutline Split Logic */
+        .playoff-cutline td {
+            border-bottom: 2px dashed var(--playoff-cut);
+        }
+
+        /* Status & Loading Indicator states */
+        .loading-state {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            letter-spacing: 0.5px;
+        }
+
+        .error-state {
+            padding: 3rem;
+            text-align: center;
+            color: var(--playoff-cut);
+            font-weight: bold;
         }
     </style>
 </head>
@@ -73,13 +145,106 @@
     <div class="dashboard-container">
         <header class="dashboard-header">
             <h1>Championship Standings</h1>
+            <p id="update-timer">Live Data Hub • Updates Automatically From Central Database</p>
         </header>
 
-        <main class="frame-wrapper">
-            <!-- ⬇️ REPLACE THE LINE BELOW WITH YOUR EXACT EMBED CODE FROM GOOGLE SHEETS ⬇️ -->
-            <iframe src="https://docs.google.com/spreadsheets/d/1mdwb8l4JH6HiXogER1SdS5AbKmv_TLR-H48j2LTEOYs/edit?gid=0#gid=0"></iframe>
+        <main class="table-wrapper">
+            <table id="standings-table">
+                <thead>
+                    <tr>
+                        <th class="text-center">Pos</th>
+                        <th>Driver</th>
+                        <th>Team</th>
+                        <th class="text-center">Wins</th>
+                        <th class="text-center">Top 5</th>
+                        <th class="text-right">Pts</th>
+                        <th class="text-right">Gap</th>
+                    </tr>
+                </thead>
+                <tbody id="standings-body">
+                    <tr>
+                        <td colspan="7" class="loading-state">Syncing secure connection with telemetry stream...</td>
+                    </tr>
+                </tbody>
+            </table>
         </main>
     </div>
 
+    <script>
+        // Your unique Google Sheet configurations
+        const SHEET_ID = '1mdwb8l4JH6HiXogER1SdS5AbKmv_TLR-H48j2LTEOYs';
+        const TAB_NAME = 'Standings';
+        
+        // Clean dynamic variable string matching configuration elements securely
+        const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${TAB_NAME}`;
+
+        // Simple CSV parser logic to avoid requiring heavy third-party dependencies
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const result = [];
+            const headers = lines[0].split(',').map(header => header.replace(/^"(.*)"$/, '$1').trim());
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const obj = {};
+                const currentline = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+                
+                headers.forEach((header, index) => {
+                    let value = currentline[index] ? currentline[index].trim() : '';
+                    value = value.replace(/^"(.*)"$/, '$1');
+                    obj[header] = value;
+                });
+                result.push(obj);
+            }
+            return result;
+        }
+
+        async function fetchAndRenderStandings() {
+            const tbody = document.getElementById('standings-body');
+            
+            try {
+                const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                if (!response.ok) throw new Error('Network error parsing spreadsheet telemetry');
+                
+                const csvData = await response.text();
+                const standings = parseCSV(csvData);
+                
+                // Wipe clean loading placeholders
+                tbody.innerHTML = '';
+                
+                // Define your playoff format cutoff point (e.g. Top 10 make the playoffs)
+                const PLAYOFF_CUTOFF_LINE = 10;
+
+                standings.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    
+                    // Inject cutoff class treatment if driver sits exactly on the bubble boundary
+                    if (index + 1 === PLAYOFF_CUTOFF_LINE) {
+                        tr.className = 'playoff-cutline';
+                    }
+
+                    // Complete inner layout mapping structure mapping elements down cleanly
+                    tr.innerHTML = `
+                        <td class="pos-column text-center">${row.POS || (index + 1)}</td>
+                        <td class="driver-name">${row.DRIVER || '—'}</td>
+                        <td class="team-badge">${row.TEAM || '—'}</td>
+                        <td class="text-center">${row.WINS || '0'}</td>
+                        <td class="text-center">${row.TOP5 || '0'}</td>
+                        <td class="pts-total text-right">${row.PTS || '0'}</td>
+                        <td class="text-right" style="color: var(--text-muted); font-size: 0.85rem;">${row.GAP || '—'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                tbody.innerHTML = `<tr><td colspan="7" class="error-state">Failed to download live stats. Check configurations.</td></tr>`;
+            }
+        }
+
+        // Fire on initial interface load execution context
+        fetchAndRenderStandings();
+    </script>
 </body>
 </html>

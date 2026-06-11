@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wheelen Roblox Ro Racing Series</title>
+    <title>League Dashboard | Hub</title>
     <style>
         /* Modern Racing UI Aesthetic Elements */
         :root {
@@ -56,7 +56,7 @@
             margin-top: 0.25rem;
         }
 
-        /* Division Subheaders inside tabs */
+        /* Division Subheaders */
         .division-header {
             font-size: 1.25rem;
             text-transform: uppercase;
@@ -148,7 +148,7 @@
 
         tr:hover td { background-color: #16161c; }
 
-        /* Dynamic Sheet Info Cards */
+        /* Dynamic Info Cards (For Results) */
         .info-card {
             background: var(--panel-bg);
             border: 1px solid var(--border-glow);
@@ -170,6 +170,72 @@
 
         .info-card p { font-size: 0.85rem; color: var(--text-muted); }
 
+        /* PREMIUM CALENDAR GRID GRAPHICS */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .calendar-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .calendar-card:hover {
+            transform: translateY(-2px);
+            border-color: #333344;
+        }
+
+        .calendar-date-badge {
+            background: #17171c;
+            padding: 0.75rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-glow);
+            text-transform: uppercase;
+        }
+
+        .calendar-month {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .calendar-day {
+            font-size: 1.75rem;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .calendar-details {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .calendar-track {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+        }
+
+        .calendar-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
         .badge-status {
             background: #1c1c24;
             padding: 0.4rem 0.8rem;
@@ -177,10 +243,13 @@
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
+            text-align: center;
+            display: inline-block;
+            width: fit-content;
         }
 
-        .status-green { color: var(--accent-neon); }
-        .status-red { color: var(--playoff-cut); }
+        .status-green { color: var(--accent-neon); border: 1px solid rgba(0, 255, 204, 0.2); }
+        .status-red { color: var(--playoff-cut); border: 1px solid rgba(255, 59, 59, 0.2); }
         .status-gray { color: var(--text-muted); }
 
         .text-center { text-align: center; }
@@ -206,7 +275,7 @@
             <button class="tab-btn active" onclick="switchTab('d1-standings')">D1 Standings</button>
             <button class="tab-btn" onclick="switchTab('d2-standings')">D2 Standings</button>
             <button class="tab-btn" onclick="switchTab('results')">Race Results</button>
-            <button class="tab-btn" onclick="switchTab('schedule')">Schedule</button>
+            <button class="tab-btn" onclick="switchTab('schedule')">Schedule Calendar</button>
         </nav>
 
         <main id="d1-standings-tab" class="tab-content active">
@@ -260,11 +329,15 @@
         </main>
 
         <main id="schedule-tab" class="tab-content">
-            <div class="division-header">Division 1 Schedule</div>
-            <div id="d1-schedule-body"><div class="loading-state">Downloading D1 calendar...</div></div>
+            <div class="division-header">Division 1 Calendar</div>
+            <div id="d1-schedule-body" class="calendar-grid">
+                <div class="loading-state">Building D1 graphic structures...</div>
+            </div>
             
-            <div class="division-header">Division 2 Schedule</div>
-            <div id="d2-schedule-body"><div class="loading-state">Downloading D2 calendar...</div></div>
+            <div class="division-header">Division 2 Calendar</div>
+            <div id="d2-schedule-body" class="calendar-grid">
+                <div class="loading-state">Building D2 graphic structures...</div>
+            </div>
         </main>
     </div>
 
@@ -336,11 +409,11 @@
                     tbody.appendChild(tr);
                 });
             } catch(e) { 
-                document.getElementById(elementId).innerHTML = '<tr><td colspan="7" class="loading-state">Error syncing data.</td></tr>'; 
+                document.getElementById(elementId).innerHTML = '<tr><td colspan="7">Error syncing data.</td></tr>'; 
             }
         }
 
-        async function fetchCards(tabName, elementId, isResults) {
+        async function fetchResultsCards(tabName, elementId) {
             try {
                 const res = await fetch(getCSVUrl(tabName));
                 const data = parseCSV(await res.text());
@@ -348,43 +421,55 @@
                 container.innerHTML = data.length === 0 ? '<div class="loading-state">No items logged.</div>' : '';
                 
                 data.forEach(row => {
-                    if (isResults) {
-                        container.innerHTML += `
-                            <div class="info-card">
-                                <div>
-                                    <h3>${row.RACE || 'Unknown Event'}</h3>
-                                    <p>Winner: ${row.WINNER || '—'} • ${row.MARGIN || '—'}</p>
-                                </div>
-                                <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
-                            </div>`;
-                    } else {
-                        container.innerHTML += `
-                            <div class="info-card">
-                                <div>
-                                    <h3>${row.TRACK || 'TBD Track'}</h3>
-                                    <p>${row.DETAILS || 'Race parameters unlisted'}</p>
-                                </div>
-                                <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Scheduled'}</span>
-                            </div>`;
-                    }
+                    container.innerHTML += `
+                        <div class="info-card">
+                            <div>
+                                <h3>${row.RACE || 'Unknown Event'}</h3>
+                                <p>Winner: ${row.WINNER || '—'} • ${row.MARGIN || '—'}</p>
+                            </div>
+                            <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Completed'}</span>
+                        </div>`;
                 });
             } catch(e) {
-                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error syncing this division.</div>';
+                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error sync.</div>';
+            }
+        }
+
+        async function fetchCalendarGrid(tabName, elementId) {
+            try {
+                const res = await fetch(getCSVUrl(tabName));
+                const data = parseCSV(await res.text());
+                const container = document.getElementById(elementId);
+                container.innerHTML = data.length === 0 ? '<div class="loading-state">No races scheduled.</div>' : '';
+                
+                data.forEach(row => {
+                    container.innerHTML += `
+                        <div class="calendar-card">
+                            <div class="calendar-date-badge">
+                                <div class="calendar-month">${row.MONTH || 'TBD'}</div>
+                                <div class="calendar-day">${row.DAY || '—'}</div>
+                            </div>
+                            <div class="calendar-details">
+                                <div>
+                                    <div class="calendar-track">${row.TRACK || 'TBD Track'}</div>
+                                    <div class="calendar-time">${row.TIME || 'Time Unlisted'}</div>
+                                </div>
+                                <span class="badge-status ${getStatusClass(row.STATUS)}">${row.STATUS || 'Scheduled'}</span>
+                            </div>
+                        </div>`;
+                });
+            } catch(e) {
+                document.getElementById(elementId).innerHTML = '<div class="loading-state">Error building grid timeline.</div>';
             }
         }
 
         async function loadHubData() {
-            // Load Standings
             await fetchTable('D1-Standings', 'd1-standings-body');
             await fetchTable('D2-Standings', 'd2-standings-body');
-
-            // Load Results split by division
-            await fetchCards('D1-Results', 'd1-results-body', true);
-            await fetchCards('D2-Results', 'd2-results-body', true);
-
-            // Load Schedules split by division
-            await fetchCards('D1-Schedule', 'd1-schedule-body', false);
-            await fetchCards('D2-Schedule', 'd2-schedule-body', false);
+            await fetchResultsCards('D1-Results', 'd1-results-body');
+            await fetchResultsCards('D2-Results', 'd2-results-body');
+            await fetchCalendarGrid('D1-Schedule', 'd1-schedule-body');
+            await fetchCalendarGrid('D2-Schedule', 'd2-schedule-body');
         }
 
         window.onload = loadHubData;

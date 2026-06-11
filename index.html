@@ -59,6 +59,7 @@
         /* Tab Navigation Bar */
         .tab-navigation {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
             border-bottom: 1px solid var(--border-glow);
@@ -147,10 +148,7 @@
             letter-spacing: 0.5px;
         }
 
-        .info-card p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
+        .info-card p { font-size: 0.85rem; color: var(--text-muted); }
 
         .badge-status {
             background: #1c1c24;
@@ -161,7 +159,6 @@
             text-transform: uppercase;
         }
 
-        /* Status Colors mapping */
         .status-green { color: var(--accent-neon); }
         .status-red { color: var(--playoff-cut); }
         .status-gray { color: var(--text-muted); }
@@ -185,15 +182,16 @@
             <p>Live Database Synchronization Active</p>
         </header>
 
-        <!-- Navigation Tabs -->
+        <!-- Four Nav Tabs Split System -->
         <nav class="tab-navigation">
-            <button class="tab-btn active" onclick="switchTab('standings')">Standings</button>
+            <button class="tab-btn active" onclick="switchTab('d1-standings')">D1 Standings</button>
+            <button class="tab-btn" onclick="switchTab('d2-standings')">D2 Standings</button>
             <button class="tab-btn" onclick="switchTab('results')">Race Results</button>
             <button class="tab-btn" onclick="switchTab('schedule')">Schedule</button>
         </nav>
 
-        <!-- TAB 1: STANDINGS -->
-        <main id="standings-tab" class="tab-content active">
+        <!-- TAB 1: D1 STANDINGS VIEW -->
+        <main id="d1-standings-tab" class="tab-content active">
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -207,19 +205,41 @@
                             <th class="text-right">Gap</th>
                         </tr>
                     </thead>
-                    <tbody id="standings-body">
-                        <tr><td colspan="7" class="loading-state">Downloading sheet telemetry...</td></tr>
+                    <tbody id="d1-standings-body">
+                        <tr><td colspan="7" class="loading-state">Downloading Division 1 telemetry...</td></tr>
                     </tbody>
                 </table>
             </div>
         </main>
 
-        <!-- TAB 2: RACE RESULTS -->
+        <!-- TAB 2: D2 STANDINGS VIEW -->
+        <main id="d2-standings-tab" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center">Pos</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                            <th class="text-center">Wins</th>
+                            <th class="text-center">Top 5</th>
+                            <th class="text-right">Pts</th>
+                            <th class="text-right">Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody id="d2-standings-body">
+                        <tr><td colspan="7" class="loading-state">Downloading Division 2 telemetry...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- TAB 3: RACE RESULTS -->
         <main id="results-tab" class="tab-content">
             <div id="results-body"><div class="loading-state">Downloading result sheets...</div></div>
         </main>
 
-        <!-- TAB 3: SCHEDULE -->
+        <!-- TAB 4: SCHEDULE -->
         <main id="schedule-tab" class="tab-content">
             <div id="schedule-body"><div class="loading-state">Downloading calendar timelines...</div></div>
         </main>
@@ -231,7 +251,11 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            event.target.classList.add('active');
+            
+            // Set current target active state securely
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
             document.getElementById(`${tabId}-tab`).classList.add('active');
         }
 
@@ -239,6 +263,7 @@
             return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
         }
 
+        // CSV parsing engine
         function parseCSV(text) {
             const lines = text.split('\n');
             const result = [];
@@ -267,16 +292,18 @@
             return 'status-gray';
         }
 
-        async function loadHubData() {
-            // 1. FETCH & RENDER STANDINGS
+        async function fetchTable(tabName, elementId) {
             try {
-                const res = await fetch(getCSVUrl('Standings'));
+                const res = await fetch(getCSVUrl(tabName));
                 const data = parseCSV(await res.text());
-                const tbody = document.getElementById('standings-body');
+                const tbody = document.getElementById(elementId);
                 tbody.innerHTML = '';
+                
+                const PLAYOFF_CUTOFF_LINE = 10;
+
                 data.forEach((row, index) => {
                     const tr = document.createElement('tr');
-                    if (index + 1 === 10) tr.className = 'playoff-cutline';
+                    if (index + 1 === PLAYOFF_CUTOFF_LINE) tr.className = 'playoff-cutline';
                     tr.innerHTML = `
                         <td class="pos-column text-center">${row.POS || (index + 1)}</td>
                         <td class="driver-name">${row.DRIVER || '—'}</td>
@@ -288,9 +315,17 @@
                     `;
                     tbody.appendChild(tr);
                 });
-            } catch(e) { document.getElementById('standings-body').innerHTML = '<tr><td colspan="7">Error loading.</td></tr>'; }
+            } catch(e) { 
+                document.getElementById(elementId).innerHTML = '<tr><td colspan="7" class="loading-state">Error downloading data. Verify tab structure exists.</td></tr>'; 
+            }
+        }
 
-            // 2. FETCH & RENDER RACE RESULTS
+        async function loadHubData() {
+            // Load Standings into individual target DOM references independently
+            await fetchTable('D1-Standings', 'd1-standings-body');
+            await fetchTable('D2-Standings', 'd2-standings-body');
+
+            // FETCH & RENDER RACE RESULTS
             try {
                 const res = await fetch(getCSVUrl('Results'));
                 const data = parseCSV(await res.text());
@@ -308,7 +343,7 @@
                 });
             } catch(e) { document.getElementById('results-body').innerHTML = '<div class="loading-state">Error sync.</div>'; }
 
-            // 3. FETCH & RENDER SCHEDULE
+            // FETCH & RENDER SCHEDULE
             try {
                 const res = await fetch(getCSVUrl('Schedule'));
                 const data = parseCSV(await res.text());
